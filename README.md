@@ -27,7 +27,7 @@ A lightweight, modern C++ command-line tool for monitoring system temperature se
 ## Build Instructions
 
 ```sh
-git clone https://github.com/YOUR_USERNAME/temperature-monitor.git
+git clone https://github.com/AbubakrAlwi/temperature-monitor.git
 cd temperature-monitor
 g++ -std=c++17 -o temp_monitor main.cpp TemperatureMonitor.cpp
 ./temp_monitor
