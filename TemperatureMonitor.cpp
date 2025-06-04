@@ -10,32 +10,40 @@ TemperatureMonitor::TemperatureMonitor() {
 }
 
 void TemperatureMonitor::findSensors() {
-    // Try /sys/class/hwmon/hwmon*/temp*_input
-    for (const auto& entry : fs::directory_iterator("/sys/class/hwmon")) {
-        for (const auto& subentry : fs::directory_iterator(entry.path())) {
-            auto filename = subentry.path().filename().string();
+    for (const auto& hwmonEntry : fs::directory_iterator("/sys/class/hwmon")) {
+        // Read the chip name from /sys/class/hwmon/hwmonX/name
+        std::string chipName;
+        std::ifstream nameFile(hwmonEntry.path() / "name");
+        if (nameFile) {
+            std::getline(nameFile, chipName);
+        } else {
+            chipName = hwmonEntry.path().filename().string();
+        }
+
+        // Find all temp*_input in this hwmon device
+        for (const auto& subentry : fs::directory_iterator(hwmonEntry.path())) {
+            std::string filename = subentry.path().filename().string();
             if (filename.find("temp") == 0 && filename.find("_input") != std::string::npos) {
-                sensorFiles.push_back(subentry.path());
-                // Try to read the label for user-friendly name
-                std::string labelFile = subentry.path().parent_path().string() + "/" + filename.substr(0, filename.find("_input")) + "_label";
-                std::ifstream label(labelFile);
-                if (label) {
-                    std::string labelName;
-                    getline(label, labelName);
-                    sensorNames.push_back(labelName);
+                // Try to read the label (e.g., temp1_label)
+                std::string labelFile = (hwmonEntry.path() / (filename.substr(0, filename.find("_input")) + "_label")).string();
+                std::ifstream labelStream(labelFile);
+                std::string label;
+                if (labelStream && std::getline(labelStream, label)) {
+                    // Use the human-friendly label
                 } else {
-                    sensorNames.push_back(filename);
+                    label = filename; // Fallback
                 }
+                sensors.push_back({chipName, label, subentry.path()});
             }
         }
     }
+
     // Fallback to /sys/class/thermal/thermal_zone*/temp
-    if (sensorFiles.empty()) {
+    if (sensors.empty()) {
         for (const auto& entry : fs::directory_iterator("/sys/class/thermal")) {
             auto filename = entry.path().filename().string();
             if (filename.find("thermal_zone") == 0) {
-                sensorFiles.push_back(entry.path().string() + "/temp");
-                sensorNames.push_back(filename);
+                sensors.push_back({filename, "temp", entry.path().string() + "/temp"});
             }
         }
     }
@@ -43,8 +51,8 @@ void TemperatureMonitor::findSensors() {
 
 std::vector<float> TemperatureMonitor::getTemperatures() const {
     std::vector<float> temps;
-    for (const auto& file : sensorFiles) {
-        temps.push_back(readTemperature(file));
+    for (const auto& sensor : sensors) {
+        temps.push_back(readTemperature(sensor.filePath));
     }
     return temps;
 }
@@ -58,10 +66,15 @@ float TemperatureMonitor::readTemperature(const std::string& sensorFile) const {
 }
 
 size_t TemperatureMonitor::sensorCount() const {
-    return sensorFiles.size();
+    return sensors.size();
 }
 
 std::string TemperatureMonitor::getSensorName(size_t index) const {
-    if (index >= sensorNames.size()) return "Unknown";
-    return sensorNames[index];
+    if (index >= sensors.size()) return "Unknown";
+    return sensors[index].chipName;
+}
+
+std::string TemperatureMonitor::getSensorLabel(size_t index) const {
+    if (index >= sensors.size()) return "Unknown";
+    return sensors[index].label;
 }
