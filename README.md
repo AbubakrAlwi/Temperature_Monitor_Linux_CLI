@@ -38,6 +38,6 @@ A lightweight, modern C++ command-line tool for monitoring system temperature se
 
 ```sh
 git clone https://github.com/AbubakrAlwi/Temperature_Monitor_Linux_CLI.git
-cd temperature-monitor
+cd Temperature_Monitor_Linux_CLI
 g++ -std=c++17 -o temp_monitor main.cpp TemperatureMonitor.cpp
 ./temp_monitor
