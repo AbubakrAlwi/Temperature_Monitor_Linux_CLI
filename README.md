@@ -23,7 +23,17 @@ A lightweight, modern C++ command-line tool for monitoring system temperature se
 - C++17 compatible compiler (g++ recommended)
 
 ---
+## Notes
 
+- **Linux Only:**  
+  This program relies on Linux sysfs interfaces at `/sys/class/hwmon` and `/sys/class/thermal` to access hardware temperature sensors. It will not work on Windows or macOS.
+
+- **Permissions:**  
+  On some systems, sensor files may only be readable by the root user or users in specific groups (such as `sensors` or `adm`). If you see "N/A" or missing temperature readings, try running the program with elevated permissions using `sudo`.
+
+- **Sensor Labels:**  
+  The program attempts to read sensor names or labels where available, providing more user-friendly output. If no label is found, a default or generic name will be shown.
+---
 ## Build Instructions
 
 ```sh
